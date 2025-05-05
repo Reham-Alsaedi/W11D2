@@ -1,0 +1,6 @@
+<div *ngFor="let post of posts" [class.highlight]="isHighlighted(post.id)" class="post">
+    <h3>{{ post.content }}</h3>
+    <p><strong>Likes:</strong> {{ post.likes }}</p>
+    <button (click)="onLike(post.id)">Like</button>
+  </div>
+  
