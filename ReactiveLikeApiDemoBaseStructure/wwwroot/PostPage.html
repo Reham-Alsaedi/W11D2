@@ -1,0 +1,113 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Reactive Like Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+        }
+
+        .post {
+            border: 1px solid #ccc;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+        }
+
+        .like-btn {
+            padding: 0.5rem 1rem;
+            background: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .like-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Live Like Updates</h1>
+    <div id="posts"></div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        const postsContainer = document.getElementById('posts');
+        const postsMap = {};
+
+        function renderPost(post) {
+
+            // Creates or updates a post element in the DOM based on post data.
+            let postDiv = document.getElementById(`post-${post.id}`);
+
+            if (!postDiv) {
+              
+                postDiv = document.createElement("div");
+                postDiv.className = "post";
+                postDiv.id = `post-${post.id}`;
+                postDiv.innerHTML = `
+        <h3>${post.content}</h3>
+        <p><strong>Likes:</strong> <span class="likes">${post.likes}</span></p>
+        <button class="like-btn" onclick="likePost(${post.id})">Like</button>
+    `;
+                postsContainer.appendChild(postDiv);
+            } else {
+                // update likes
+                const likesSpan = postDiv.querySelector(".likes");
+                likesSpan.textContent = post.likes;
+            }
+
+
+            postsMap[post.id] = post;
+        }
+
+        function likePost(id) {
+            fetch(`/api/posts/${id}/like`, { method: 'POST' })
+                .then(response => response.json())
+                .then(post => {
+                    console.log("Liked post:", post);
+                  
+                    renderPost(post);
+                });
+        }
+
+        // Initial load of posts
+        // Runs after the DOM is fully loaded; initializes posts and SSE subscription.
+        document.addEventListener("DOMContentLoaded", function () {
+
+            // fetch('/api/posts')
+            // Fetches all posts from the API and renders them initially on page load.
+            fetch('/api/posts')
+                .then(response => response.json())
+                .then(posts => {
+                    posts.forEach(post => renderPost(post));
+                });
+
+            // Subscribe to live updates
+            // Opens a Server-Sent Events (SSE) connection to receive live updates from the server.
+            const evtSource = new EventSource("/api/subscribe");
+
+
+            evtSource.onmessage = function (event) {
+                const post = JSON.parse(event.data);
+                console.log("Received update:", post);
+                renderPost(post); // re-render on update
+            };
+
+
+            evtSource.onerror = function (error) {
+                // Handles SSE connection errors by logging them.
+                console.error("EventSource failed:", error);
+            };
+        });
+    </script>
+
+</body>
+
+</html>
